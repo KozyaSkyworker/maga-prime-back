@@ -1,10 +1,10 @@
-from flask import Flask, jsonify, abort
+from flask import Flask, jsonify, abort, request
 from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
 CORS(app)
 
-DATA = [
+EXERCISES = [
     {
         'id': 1,
         'name': "Дифференциальные уравнения",
@@ -65,12 +65,14 @@ DATA = [
         'started_at': "03.12.2026",
         'time_spent': "1ч. 25мин.",
     },
-];
+]
+
+URLS = []
 
 
 @app.route("/exercises", methods=['GET', 'OPTIONS'])
 def get_exercises_all():
-    response = jsonify(DATA)
+    response = jsonify(EXERCISES)
     return response
 
 
@@ -78,7 +80,7 @@ def get_exercises_all():
 @cross_origin()
 def get_exercises_single(exercise_id):
     exercise = {}
-    for item in DATA:
+    for item in EXERCISES:
         if item['id'] == exercise_id:
             exercise = item
 
@@ -86,6 +88,25 @@ def get_exercises_single(exercise_id):
         return jsonify(exercise)
     else:
         return abort(404)
+
+
+@app.route("/urls", methods=['POST', 'OPTIONS'])
+@cross_origin()
+def save_url_data_to_db():
+    new_url = {
+        'id': len(URLS) + 1,
+        'url': request.json['url'],
+        'is_relevant': 66,
+        'exercise_id': 1
+    }
+
+    print('new url => ', new_url)
+
+    URLS.append(new_url)
+
+    print('urls => ', URLS)
+
+    return jsonify({'new_url': new_url}), 201
 
 
 if __name__ == '__main__':

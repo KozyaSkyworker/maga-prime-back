@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, abort, request
 from flask_cors import CORS, cross_origin
+import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -90,13 +91,32 @@ def get_exercises_single(exercise_id):
         return abort(404)
 
 
+@app.route("/exercises", methods=['POST', 'OPTIONS'])
+@cross_origin()
+def create_new_exercise():
+    new_exercise = {
+        'id': len(EXERCISES) + 1,
+        'name': request.json['name'],
+        'started_at': '' + datetime.datetime.now() + '',
+        'time_spent': ''
+    }
+
+    print('new_exercise => ', new_exercise)
+
+    EXERCISES.append(new_exercise)
+
+    print('exercises => ', EXERCISES)
+
+    return jsonify(new_exercise), 201
+
+
 @app.route("/urls", methods=['POST', 'OPTIONS'])
 @cross_origin()
 def save_url_data_to_db():
     new_url = {
         'id': len(URLS) + 1,
         'url': request.json['url'],
-        'is_relevant': 66,
+        'is_relevant': request.json['is_relevant'],
         'exercise_id': 1
     }
 

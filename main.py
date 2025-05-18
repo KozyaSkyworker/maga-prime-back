@@ -1,6 +1,36 @@
 from flask import Flask, jsonify, abort, request
 from flask_cors import CORS, cross_origin
-from datetime import datetime
+import datetime
+import sqlite3
+
+con = sqlite3.connect('my_database.db')
+cursor = con.cursor()
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS User
+                (id INTEGER PRIMARY KEY AUTOINCREMENT,  
+                created_at DEFAULT TIMESTAMP,
+                first_name TEXT NOT NULL, 
+                sur_name TEXT NOT NULL, 
+                last_name TEXT, 
+                role INTEGER,
+                is_deleted INTEGER,
+                username TEXT,
+                password TEXT)
+            """)
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS Exercise
+                (id INTEGER PRIMARY KEY AUTOINCREMENT,  
+                created_at TIMESTAMP,
+                started_at TIMESTAMP,
+                time_spent TEXT,
+                name TEXT NOT NULL, 
+                status INTEGER DEFAULT 1,
+                user_id INTEGER NOT NULL,
+                FOREIGN KEY (user_id)  REFERENCES User (id))
+            """)
+
+con.commit()
+con.close()
 
 app = Flask(__name__)
 CORS(app)
@@ -82,15 +112,31 @@ URLS = []
 
 
 @app.route("/exercises", methods=['GET', 'OPTIONS'])
+@cross_origin()
 def get_exercises_all():
-    sort = request.args.get('sort')
-    exercises = EXERCISES.copy()
+    sort = request.args.get('sort') or 'desc'
 
-    if sort in ('asc', 'desc'):
-        exercises.sort(
-            key=lambda x: datetime.fromisoformat(x['started_at']),
-            reverse=(sort == 'desc')
-        )
+    con = sqlite3.connect('my_database.db')
+    cursor = con.cursor()
+
+    cursor.execute(f'SELECT * FROM Exercise ORDER BY id {sort}')
+
+    result = cursor.fetchall()
+
+    con.close()
+
+    exercises = []
+    for exercise in result:
+        temp_exercise = {
+            'id': exercise[0],
+            'created_at': exercise[1],
+            'started_at': exercise[2],
+            'time_spent': exercise[3],
+            'name': exercise[4],
+            'status': exercise[5],
+            'user_id': exercise[6],
+        }
+        exercises.append(temp_exercise)
 
     return jsonify(exercises)
 
@@ -98,12 +144,26 @@ def get_exercises_all():
 @app.route("/exercises/<int:exercise_id>", methods=['GET', 'OPTIONS'])
 @cross_origin()
 def get_exercises_single(exercise_id):
-    exercise = {}
-    for item in EXERCISES:
-        if item['id'] == exercise_id:
-            exercise = item
+    con = sqlite3.connect('my_database.db')
+    cursor = con.cursor()
 
-    if 'id' in exercise:
+    cursor.execute('SELECT * from Exercise WHERE id = ?', (int(exercise_id),))
+
+    result = cursor.fetchone()
+
+    con.close()
+
+    if result:
+        exercise = {
+            'id': result[0],
+            'created_at': result[1],
+            'started_at': result[2],
+            'time_spent': result[3],
+            'name': result[4],
+            'status': result[5],
+            'user_id': result[6],
+        }
+
         return jsonify(exercise)
     else:
         return abort(404)
@@ -112,18 +172,30 @@ def get_exercises_single(exercise_id):
 @app.route("/exercises", methods=['POST', 'OPTIONS'])
 @cross_origin()
 def create_new_exercise():
+    con = sqlite3.connect('my_database.db')
+    cursor = con.cursor()
+
+    new_exercise_insert = (request.json['name'], request.json['user_id'], datetime.datetime.now())
+
+    cursor.execute('INSERT INTO Exercise (name, user_id, created_at) VALUES (?, ?, ?)', new_exercise_insert)
+
+    con.commit()
+
+    cursor.execute('SELECT * from Exercise ORDER BY id DESC')
+
+    result = cursor.fetchone()
+
+    con.close()
+
     new_exercise = {
-        'id': len(EXERCISES) + 1,
-        'name': request.json['name'],
-        'started_at': datetime.datetime.now().isoformat(),
-        'time_spent': ''
+        'id': result[0],
+        'created_at': result[1],
+        'started_at': result[2],
+        'time_spent': result[3],
+        'name': result[4],
+        'status': result[5],
+        'user_id': result[6],
     }
-
-    print('new_exercise => ', new_exercise)
-
-    EXERCISES.append(new_exercise)
-
-    print('exercises => ', EXERCISES)
 
     return jsonify({'data': new_exercise, 'status': 201}), 201
 

@@ -3,34 +3,7 @@ from flask_cors import CORS, cross_origin
 import datetime
 import sqlite3
 
-con = sqlite3.connect('my_database.db')
-cursor = con.cursor()
-
-cursor.execute("""CREATE TABLE IF NOT EXISTS User
-                (id INTEGER PRIMARY KEY AUTOINCREMENT,  
-                created_at DEFAULT TIMESTAMP,
-                first_name TEXT NOT NULL, 
-                sur_name TEXT NOT NULL, 
-                last_name TEXT, 
-                role INTEGER,
-                is_deleted INTEGER,
-                username TEXT,
-                password TEXT)
-            """)
-
-cursor.execute("""CREATE TABLE IF NOT EXISTS Exercise
-                (id INTEGER PRIMARY KEY AUTOINCREMENT,  
-                created_at TIMESTAMP,
-                started_at TIMESTAMP,
-                time_spent TEXT,
-                name TEXT NOT NULL, 
-                status INTEGER DEFAULT 1,
-                user_id INTEGER NOT NULL,
-                FOREIGN KEY (user_id)  REFERENCES User (id))
-            """)
-
-con.commit()
-con.close()
+DB_NAME = 'my_database.db'
 
 app = Flask(__name__)
 CORS(app)
@@ -53,7 +26,7 @@ URLS = []
 def get_exercises_all():
     sort = request.args.get('sort') or 'desc'
 
-    con = sqlite3.connect('my_database.db')
+    con = sqlite3.connect(DB_NAME)
     cursor = con.cursor()
 
     cursor.execute(f'SELECT * FROM Exercise ORDER BY id {sort}')
@@ -81,7 +54,7 @@ def get_exercises_all():
 @app.route("/exercises/<int:exercise_id>", methods=['GET', 'OPTIONS'])
 @cross_origin()
 def get_exercises_single(exercise_id):
-    con = sqlite3.connect('my_database.db')
+    con = sqlite3.connect(DB_NAME)
     cursor = con.cursor()
 
     cursor.execute('SELECT * from Exercise WHERE id = ?', (int(exercise_id),))
@@ -109,7 +82,7 @@ def get_exercises_single(exercise_id):
 @app.route("/exercises", methods=['POST', 'OPTIONS'])
 @cross_origin()
 def create_new_exercise():
-    con = sqlite3.connect('my_database.db')
+    con = sqlite3.connect(DB_NAME)
     cursor = con.cursor()
 
     new_exercise_insert = (request.json['name'], request.json['user_id'], datetime.datetime.now())

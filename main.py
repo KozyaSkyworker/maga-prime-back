@@ -8,18 +8,6 @@ DB_NAME = 'my_database.db'
 app = Flask(__name__)
 CORS(app)
 
-EXERCISES = [
-    {
-        'id': 1,
-        'name': "Дифференциальные уравнения",
-        'started_at': "2026-09-12T00:00:00",
-        'time_spent': "2ч. 30мин.",
-        'status': 1
-    },
-]
-
-URLS = []
-
 
 @app.route("/exercises", methods=['GET', 'OPTIONS'])
 @cross_origin()
@@ -41,10 +29,11 @@ def get_exercises_all():
             'id': exercise[0],
             'created_at': exercise[1],
             'started_at': exercise[2],
-            'time_spent': exercise[3],
-            'name': exercise[4],
-            'status': exercise[5],
-            'user_id': exercise[6],
+            'stopped_at': exercise[3],
+            'time_spent': exercise[4],
+            'name': exercise[5],
+            'status': exercise[6],
+            'user_id': exercise[7],
         }
         exercises.append(temp_exercise)
 
@@ -55,28 +44,30 @@ def get_exercises_all():
 @cross_origin()
 def get_exercises_single(exercise_id):
     con = sqlite3.connect(DB_NAME)
+
+    con.row_factory = sqlite3.Row
     cursor = con.cursor()
 
-    cursor.execute('SELECT * from Exercise WHERE id = ?', (int(exercise_id),))
+    cursor.execute("SELECT * FROM Exercise WHERE id = ?", (exercise_id,))
+    exercise = cursor.fetchone()
 
-    result = cursor.fetchone()
+    if not exercise:
+        return abort(404)
+
+    exercise_dict = dict(exercise)
+
+    cursor.execute("SELECT * FROM Url WHERE exercise_id = ?", (exercise_id,))
+    urls = cursor.fetchall()
+    urls_list = [dict(url) for url in urls]
 
     con.close()
 
-    if result:
-        exercise = {
-            'id': result[0],
-            'created_at': result[1],
-            'started_at': result[2],
-            'time_spent': result[3],
-            'name': result[4],
-            'status': result[5],
-            'user_id': result[6],
-        }
+    result = {
+        "exercise": exercise_dict,
+        "urls": urls_list
+    }
 
-        return jsonify(exercise)
-    else:
-        return abort(404)
+    return jsonify(result), 200
 
 
 @app.route("/exercises", methods=['POST', 'OPTIONS'])
@@ -101,32 +92,94 @@ def create_new_exercise():
         'id': result[0],
         'created_at': result[1],
         'started_at': result[2],
-        'time_spent': result[3],
-        'name': result[4],
-        'status': result[5],
-        'user_id': result[6],
+        'stopped_at': result[3],
+        'time_spent': result[4],
+        'name': result[5],
+        'status': result[6],
+        'user_id': result[7],
     }
 
     return jsonify({'data': new_exercise, 'status': 201}), 201
 
 
+@app.route("/exercises/<int:exercise_id>", methods=['PATCH', 'OPTIONS'])
+@cross_origin()
+def update_exercise(exercise_id):
+    con = sqlite3.connect(DB_NAME)
+    cursor = con.cursor()
+
+    exercise_values = (int(request.json['status']), int(exercise_id))
+
+    cursor.execute('UPDATE Exercise SET status = ? WHERE id = ?', exercise_values)
+
+    con.commit()
+
+    cursor.execute('SELECT * from Exercise ORDER BY id DESC')
+
+    result = cursor.fetchone()
+
+    con.close()
+
+    updated_exercise = {
+        'id': result[0],
+        'created_at': result[1],
+        'started_at': result[2],
+        'stopped_at': result[3],
+        'time_spent': result[4],
+        'name': result[5],
+        'status': result[6],
+        'user_id': result[7],
+    }
+
+    return jsonify({'data': updated_exercise, 'status': 200}), 200
+
+
+@app.route("/exercises/<int:exercise_id>", methods=['DELETE', 'OPTIONS'])
+@cross_origin()
+def delete_exercise(exercise_id):
+    con = sqlite3.connect(DB_NAME)
+    cursor = con.cursor()
+
+    cursor.execute('DELETE FROM Exercise WHERE id = ?', (int(exercise_id),))
+
+    con.commit()
+
+    con.close()
+
+    return jsonify({'data': f"{exercise_id} deleted", 'status': 200}), 200
+
+
 @app.route("/urls", methods=['POST', 'OPTIONS'])
 @cross_origin()
 def save_url_data_to_db():
+    con = sqlite3.connect(DB_NAME)
+    cursor = con.cursor()
+
+    new_url_insert = (datetime.datetime.now(), request.json['url'], request.json['title'], request.json['visited_at'],
+                      request.json['exercise_id'])
+
+    cursor.execute('INSERT INTO Url (created_at, url, title, visited_at, exercise_id ) VALUES (?, ?, ?, ?, ?)',
+                   new_url_insert)
+
+    con.commit()
+
+    cursor.execute('SELECT * from Url ORDER BY id DESC')
+
+    result = cursor.fetchone()
+
+    con.close()
+
     new_url = {
-        'id': len(URLS) + 1,
-        'url': request.json['url'],
-        'is_relevant': request.json['is_relevant'],
-        'exercise_id': 1
+        'id': result[0],
+        'created_at': result[1],
+        'visited_at': result[2],
+        'time_spent': result[3],
+        'url': result[4],
+        'title': result[5],
+        'exercise_id': result[6],
     }
 
-    print('new url => ', new_url)
-
-    URLS.append(new_url)
-
-    print('urls => ', URLS)
-
-    return jsonify({'new_url': new_url}), 201
+    return jsonify({'data': new_url, 'status': 201}), 201
 
 
 if __name__ == '__main__':

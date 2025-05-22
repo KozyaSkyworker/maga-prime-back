@@ -19,6 +19,7 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS Exercise
                 (id INTEGER PRIMARY KEY AUTOINCREMENT,  
                 created_at TIMESTAMP,
                 started_at TIMESTAMP,
+                stopped_at TIMESTAMP,
                 time_spent TEXT,
                 name TEXT NOT NULL, 
                 status INTEGER DEFAULT 1,
@@ -26,6 +27,16 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS Exercise
                 FOREIGN KEY (user_id)  REFERENCES User (id))
             """)
 
+cursor.execute("""CREATE TABLE IF NOT EXISTS Url
+                (id INTEGER PRIMARY KEY AUTOINCREMENT,  
+                created_at TIMESTAMP,
+                visited_at INTEGER,
+                time_spent TEXT,
+                url TEXT, 
+                title TEXT,
+                exercise_id INTEGER NOT NULL,
+                FOREIGN KEY (exercise_id)  REFERENCES Exercise (id))
+            """)
 
 cursor.execute("""INSERT INTO User (first_name, sur_name, username, password) VALUES ('student', 'student', 'student', 
 'student')""")

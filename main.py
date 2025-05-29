@@ -56,7 +56,7 @@ def get_exercises_single(exercise_id):
 
     exercise_dict = dict(exercise)
 
-    cursor.execute("SELECT * FROM Url WHERE exercise_id = ?", (exercise_id,))
+    cursor.execute("SELECT id, url, title, exercise_id FROM Url WHERE exercise_id = ? GROUP BY url", (exercise_id,))
     urls = cursor.fetchall()
     urls_list = [dict(url) for url in urls]
 

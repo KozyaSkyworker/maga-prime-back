@@ -56,7 +56,9 @@ def get_exercises_single(exercise_id):
 
     exercise_dict = dict(exercise)
 
-    cursor.execute("SELECT id, url, title, exercise_id, is_relevant FROM Url WHERE exercise_id = ? GROUP BY url", (exercise_id,))
+    cursor.execute(
+        "SELECT id, url, title, exercise_id, is_relevant, description FROM Url WHERE exercise_id = ? GROUP BY url",
+        (exercise_id,))
     urls = cursor.fetchall()
     urls_list = [dict(url) for url in urls]
 
@@ -108,9 +110,16 @@ def update_exercise(exercise_id):
     con = sqlite3.connect(DB_NAME)
     cursor = con.cursor()
 
-    exercise_values = (int(request.json['status']), int(exercise_id))
+    exercise_values = (int(request.json['status']), datetime.datetime.now(), int(exercise_id))
+    sql = None
 
-    cursor.execute('UPDATE Exercise SET status = ? WHERE id = ?', exercise_values)
+    if int(request.json['status']) == 2:  # start
+        sql = 'UPDATE Exercise SET status = ?, started_at = ? WHERE id = ?'
+
+    if int(request.json['status']) == 3:  # stop
+        sql = 'UPDATE Exercise SET status = ?, stopped_at = ? WHERE id = ?'
+
+    cursor.execute(sql, exercise_values)
 
     con.commit()
 
@@ -176,7 +185,7 @@ def save_url_data_to_db():
         'time_spent': result[3],
         'url': result[4],
         'title': result[5],
-        'exercise_id': result[6],
+        'exercise_id': result[8],
     }
 
     return jsonify({'data': new_url, 'status': 201}), 201
@@ -190,9 +199,9 @@ def update_urls():
 
     # https://dev.to/chidioguejiofor/scenario-1-making-updates-to-multiple-fields-56hl
 
-    exercise_values = (int(request.json['status']), int(exercise_id))
-
-    cursor.execute('UPDATE Url SET status = ? WHERE id = ?', exercise_values)
+    # exercise_values = (int(request.json['status']), int(exercise_id))
+    #
+    # cursor.execute('UPDATE Url SET status = ? WHERE id = ?', exercise_values)
 
     con.commit()
 

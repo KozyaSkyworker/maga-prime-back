@@ -34,9 +34,10 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS Url
                 time_spent TEXT,
                 url TEXT, 
                 title TEXT,
+                is_relevant INTEGER,
+                description TEXT,
                 exercise_id INTEGER NOT NULL,
-                FOREIGN KEY (exercise_id)  REFERENCES Exercise (id)),
-                is_relevant INTEGER
+                FOREIGN KEY (exercise_id)  REFERENCES Exercise (id))
             """)
 
 cursor.execute("""INSERT INTO User (first_name, sur_name, username, password) VALUES ('student', 'student', 'student', 

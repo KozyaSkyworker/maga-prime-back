@@ -164,11 +164,11 @@ def save_url_data_to_db():
     con = sqlite3.connect(DB_NAME)
     cursor = con.cursor()
 
-    new_url_insert = (datetime.datetime.now(), request.json['url'], request.json['title'], request.json['visited_at'],
-                      request.json['exercise_id'])
+    new_url_insert = (datetime.datetime.now(), request.json['origin'], request.json['href'], request.json['title'],
+                      request.json['visited_at'], request.json['exercise_id'])
 
-    cursor.execute('INSERT INTO Url (created_at, url, title, visited_at, exercise_id ) VALUES (?, ?, ?, ?, ?)',
-                   new_url_insert)
+    cursor.execute('INSERT INTO Url (created_at, origin, href, title, visited_at, exercise_id ) VALUES (?, ?, ?, ?, '
+                   '?, ?)', new_url_insert)
 
     con.commit()
 
@@ -183,9 +183,10 @@ def save_url_data_to_db():
         'created_at': result[1],
         'visited_at': result[2],
         'time_spent': result[3],
-        'url': result[4],
-        'title': result[5],
-        'exercise_id': result[8],
+        'origin': result[4],
+        'href': result[5],
+        'title': result[6],
+        'exercise_id': result[9],
     }
 
     return jsonify({'data': new_url, 'status': 201}), 201
@@ -208,6 +209,38 @@ def update_urls():
     con.close()
 
     return jsonify({'data': 'urls updated', 'status': 200}), 200
+
+
+@app.route("/reports/<int:exercise_id>", methods=['GET', 'OPTIONS'])
+@cross_origin()
+def get_reports_single(exercise_id):
+    con = sqlite3.connect(DB_NAME)
+
+    con.row_factory = sqlite3.Row
+    cursor = con.cursor()
+
+    cursor.execute("SELECT * FROM Exercise WHERE id = ?", (exercise_id,))
+    exercise = cursor.fetchone()
+
+    if not exercise:
+        return abort(404)
+
+    exercise_dict = dict(exercise)
+
+    cursor.execute(
+        "SELECT title, url, COUNT(*) as visits_count FROM url WHERE exercise_id = ? GROUP BY url",
+        (exercise_id,))
+    urls = cursor.fetchall()
+    urls_list = [dict(url) for url in urls]
+
+    con.close()
+
+    result = {
+        "exercise": exercise_dict,
+        "urls": urls_list
+    }
+
+    return jsonify(result), 200
 
 
 if __name__ == '__main__':

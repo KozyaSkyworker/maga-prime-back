@@ -57,7 +57,7 @@ def get_exercises_single(exercise_id):
     exercise_dict = dict(exercise)
 
     cursor.execute(
-        "SELECT id, url, title, exercise_id, is_relevant, description FROM Url WHERE exercise_id = ? GROUP BY url",
+        "SELECT id, href, origin, title, exercise_id, is_relevant, description FROM Url WHERE exercise_id = ? GROUP BY origin",
         (exercise_id,))
     urls = cursor.fetchall()
     urls_list = [dict(url) for url in urls]
@@ -198,14 +198,27 @@ def update_urls():
     con = sqlite3.connect(DB_NAME)
     cursor = con.cursor()
 
-    # https://dev.to/chidioguejiofor/scenario-1-making-updates-to-multiple-fields-56hl
+    updates = request.get_json()
 
-    # exercise_values = (int(request.json['status']), int(exercise_id))
-    #
-    # cursor.execute('UPDATE Url SET status = ? WHERE id = ?', exercise_values)
+    print(updates)
+
+    for item in updates:
+        for name, data in item.items():
+            url_id = data.get('id')
+            if url_id is None:
+                continue
+
+            query = "UPDATE url SET "
+            query += "is_relevant = ?"
+            query += ", description = ?"
+            query += " WHERE id = ?"
+
+            print('SQL', query)
+
+            cursor.execute(query, (data['is_relevant'], data['description'], url_id))
 
     con.commit()
-
+    cursor.close()
     con.close()
 
     return jsonify({'data': 'urls updated', 'status': 200}), 200
@@ -228,7 +241,7 @@ def get_reports_single(exercise_id):
     exercise_dict = dict(exercise)
 
     cursor.execute(
-        "SELECT title, url, COUNT(*) as visits_count FROM url WHERE exercise_id = ? GROUP BY url",
+        "SELECT title, href, origin, COUNT(*) as visits_count FROM url WHERE exercise_id = ? GROUP BY origin",
         (exercise_id,))
     urls = cursor.fetchall()
     urls_list = [dict(url) for url in urls]

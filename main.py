@@ -247,7 +247,7 @@ def get_reports_single(exercise_id):
     exercise_dict = dict(exercise)
 
     cursor.execute(
-        "SELECT title, href, origin, COUNT(*) as visits_count FROM url WHERE exercise_id = ? GROUP BY origin",
+        "SELECT title, href, origin, is_relevant, COUNT(*) as visits_count FROM url WHERE exercise_id = ? GROUP BY origin",
         (exercise_id,))
     urls = cursor.fetchall()
     urls_list = [dict(url) for url in urls]

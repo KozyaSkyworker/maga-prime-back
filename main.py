@@ -110,14 +110,20 @@ def update_exercise(exercise_id):
     con = sqlite3.connect(DB_NAME)
     cursor = con.cursor()
 
-    exercise_values = (int(request.json['status']), datetime.datetime.now(), int(exercise_id))
+    exercise_values = None
     sql = None
 
-    if int(request.json['status']) == 2:  # start
-        sql = 'UPDATE Exercise SET status = ?, started_at = ? WHERE id = ?'
+    if request.json['name']:  # update name
+        exercise_values = (request.json['name'], int(exercise_id))
+        sql = 'UPDATE Exercise SET name = ? WHERE id = ?'
+    else:
+        exercise_values = (int(request.json['status']), datetime.datetime.now(), int(exercise_id))
 
-    if int(request.json['status']) == 3:  # stop
-        sql = 'UPDATE Exercise SET status = ?, stopped_at = ? WHERE id = ?'
+        if int(request.json['status']) == 2:  # start
+            sql = 'UPDATE Exercise SET status = ?, started_at = ? WHERE id = ?'
+
+        if int(request.json['status']) == 3:  # stop
+            sql = 'UPDATE Exercise SET status = ?, stopped_at = ? WHERE id = ?'
 
     cursor.execute(sql, exercise_values)
 

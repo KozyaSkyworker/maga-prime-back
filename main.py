@@ -113,7 +113,7 @@ def update_exercise(exercise_id):
     exercise_values = None
     sql = None
 
-    if request.json['name']:  # update name
+    if 'name' in request.json and request.json['name']:  # update name
         exercise_values = (request.json['name'], int(exercise_id))
         sql = 'UPDATE Exercise SET name = ? WHERE id = ?'
     else:
@@ -218,8 +218,6 @@ def update_urls():
             query += "is_relevant = ?"
             query += ", description = ?"
             query += " WHERE id = ?"
-
-            print('SQL', query)
 
             cursor.execute(query, (data['is_relevant'], data['description'], url_id))
 
